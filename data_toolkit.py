@@ -8,7 +8,7 @@ from typing import List, Union
 # === Version Control ===
 __version__ = "2025.06.17"
 __release__ = "r01"
-__expires__ = datetime.date(2025, 6, 22)
+__expires__ = datetime.date(2025, 6, 24)
 
 if datetime.date.today() > __expires__:
     raise RuntimeError(
@@ -17,29 +17,50 @@ if datetime.date.today() > __expires__:
     )
 
 class DataType(Enum):
+    """Defines the types of data a DataContainer can represent."""
+
     QUALITATIVE = "qualitative"
     DISCRETE = "discrete"
     CONTINUOUS = "continuous"
 
 class VariableRole(Enum):
+    """Defines the role of a variable in analysis (independent or dependent)."""
+
     INDEPENDENT = "independent"
     DEPENDENT = "dependent"
 
 class DistributionType(Enum):
+    """Defines supported random distributions for data generation."""
+
     UNIFORM = auto()
     NORMAL = auto()
     LEFT_SKEW = auto()
     RIGHT_SKEW = auto()
 
 class RandomDataGenerator:
-    def __init__(
+    """Generates random datasets using various distributions, optionally qualitative or numeric."""
+
+        def __init__(
         self,
+
         count: int,
         min_val: Union[int, float] = 0,
         max_val: Union[int, float] = 100,
         is_integer: bool = True,
         qualitative_values: List[str] = None
     ):
+        """
+        Parameters:
+            count (int): Number of values to generate.
+            min_val (int or float): Minimum value (numeric only).
+            max_val (int or float): Maximum value (numeric only).
+            is_integer (bool): Whether to generate integers or floats.
+            qualitative_values (list of str, optional): If provided, generates qualitative values from this list.
+
+        Raises:
+            ValueError: For invalid count, value ranges, or empty qualitative list.
+            TypeError: If types are incorrect.
+        """
         # === Input validation ===
         MAX_ALLOWED_COUNT = 20000
         if not isinstance(count, int) or count <= 0:
@@ -67,13 +88,29 @@ class RandomDataGenerator:
         self.is_integer = is_integer
         self.qualitative_values = qualitative_values
 
-    def generate_uniform_data(self):
+        def generate_uniform_data(self):
+        """Generates uniformly distributed data (int or float based on is_integer)."""
+
         if self.is_integer:
             return [random.randint(self.min_val, self.max_val) for _ in range(self.count)]
         else:
             return [random.uniform(self.min_val, self.max_val) for _ in range(self.count)]
 
-    def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
+        def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
+        """
+        Generates data using the specified distribution.
+
+        Parameters:
+            distribution (DistributionType): The distribution to use.
+            kwargs: Extra parameters for normal distribution (mean, stddev).
+
+        Returns:
+            list of generated data values
+
+        Raises:
+            ValueError: If unsupported distribution is selected.
+        """
+
         if self.qualitative_values:
             return [random.choice(self.qualitative_values) for _ in range(self.count)]
         if distribution == DistributionType.UNIFORM:
@@ -90,17 +127,38 @@ class RandomDataGenerator:
             raise ValueError("Unsupported distribution type.")
 
 class DataContainer:
-    def __init__(self, name: str, description: str, data_type: DataType):
+    """Stores a named dataset with type and role metadata, and provides loading methods."""
+
+        def __init__(self, name: str, description: str, data_type: DataType):
+        """
+        Parameters:
+            name (str): Short label for this dataset.
+            description (str): A longer description for context.
+            data_type (DataType): Type of data being stored (qualitative, discrete, continuous).
+        """
+
         self.name = name
         self.description = description
         self.data_type = data_type
         self.role: VariableRole = None
         self.data: List[Union[int, float, str]] = []
 
-    def set_role(self, role: VariableRole):
+        def set_role(self, role: VariableRole):
+        """Assigns whether the variable is independent or dependent."""
+
         self.role = role
 
-    def load_data(self, source: Union[List[Union[int, float, str]], RandomDataGenerator]):
+        def load_data(self, source: Union[List[Union[int, float, str]], RandomDataGenerator]):
+        """
+        Loads data from a list or a generator into this container.
+
+        Parameters:
+            source (list or RandomDataGenerator): Data source to load.
+
+        Raises:
+            TypeError: If source is an unsupported type.
+        """
+
         if isinstance(source, list):
             self.data = source
         elif isinstance(source, RandomDataGenerator):
@@ -109,16 +167,32 @@ class DataContainer:
             raise TypeError("Unsupported data source type")
 
 class SummaryStats:
-    def __init__(self, container: DataContainer):
+    """Provides statistical summaries (mean, median, mode) for numeric data in a DataContainer."""
+
+        def __init__(self, container: DataContainer):
+        """
+        Parameters:
+            container (DataContainer): Must contain numeric data.
+
+        Raises:
+            TypeError: If data type is QUALITATIVE.
+        """
+
         self.container = container
         if self.container.data_type == DataType.QUALITATIVE:
             raise TypeError("Cannot compute numerical summary on qualitative data.")
 
-    def mean(self):
+        def mean(self):
+        """Returns the mean of the data."""
+
         return statistics.mean(self.container.data)
 
-    def median(self):
+        def median(self):
+        """Returns the median of the data."""
+
         return statistics.median(self.container.data)
 
-    def mode(self):
+        def mode(self):
+        """Returns the mode of the data."""
+
         return statistics.mode(self.container.data)

@@ -79,16 +79,16 @@ class DataContainer:
             data (List[tuple]): Paired (x, y) values or single-variable data.
         """
 
-        self.name = name
-        self.description = description
-        self.data_type = data_type
-        self.role: VariableRole = None
-        self.data: List[Union[int, float, str]] = []
+           self.name = name
+           self.description = description
+           self.data_type = data_type
+           self.role: VariableRole = None
+           self.data: List[Union[int, float, str]] = []
 
         def set_role(self, role: VariableRole):
         """Assigns whether the variable is independent or dependent."""
-
-        self.role = role
+  
+           self.role = role
 
         def load_data(self, source: Union[List[Union[int, float, str]], RandomDataGenerator]):
         """

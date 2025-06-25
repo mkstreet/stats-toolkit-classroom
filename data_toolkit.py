@@ -29,7 +29,7 @@ import numpy as np
 # === Version Control ===
 __version__ = "2025.06.25"
 __release__ = "r01"
-__expires__ = datetime.date(2025, 07, 02)
+__expires__ = datetime.date(2025, 7, 2)
 
 if datetime.date.today() > __expires__:
     raise RuntimeError(

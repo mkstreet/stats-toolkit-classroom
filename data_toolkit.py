@@ -145,7 +145,7 @@ class FitModel:
             self._dc = description
 
 
-       def fit_linear_model(self, start: float, end: float):
+        def fit_linear_model(self, start: float, end: float):
             """
             Fits and plots a linear model to data between specified x-values.
 
@@ -188,39 +188,39 @@ class FitModel:
 
 
 class SummaryStats:
-    """Provides statistical summaries (mean, median, mode) for numeric data in a DataContainer."""
+        """Provides statistical summaries (mean, median, mode) for numeric data in a DataContainer."""
 
         def __init__(self, container: DataContainer):
-        """
-        Parameters:
-            container (DataContainer): Must contain numeric data.
+            """
+            Parameters:
+                container (DataContainer): Must contain numeric data.
 
-        Raises:
-            TypeError: If data type is QUALITATIVE.
-        """
+            Raises:
+                TypeError: If data type is QUALITATIVE.
+            """
 
         self.container = container
         if self.container.data_type == DataType.QUALITATIVE:
             raise TypeError("Cannot compute numerical summary on qualitative data.")
 
         def mean(self):
-        """Returns the mean of the data."""
+            """Returns the mean of the data."""
 
         return statistics.mean(self.container.data)
 
         def median(self):
-        """Returns the median of the data."""
+            """Returns the median of the data."""
 
         return statistics.median(self.container.data)
 
         def mode(self):
-        """Returns the mode of the data."""
+            """Returns the mode of the data."""
 
         return statistics.mode(self.container.data)
 
 
 class RandomDataGenerator:
-    """Generates random datasets using various distributions, optionally qualitative or numeric."""
+        """Generates random datasets using various distributions, optionally qualitative or numeric."""
 
         def __init__(
         self,
@@ -231,18 +231,18 @@ class RandomDataGenerator:
         is_integer: bool = True,
         qualitative_values: List[str] = None
     ):
-        """
-        Parameters:
-            count (int): Number of values to generate.
-            min_val (int or float): Minimum value (numeric only).
-            max_val (int or float): Maximum value (numeric only).
-            is_integer (bool): Whether to generate integers or floats.
-            qualitative_values (list of str, optional): If provided, generates qualitative values from this list.
+            """
+            Parameters:
+                count (int): Number of values to generate.
+                min_val (int or float): Minimum value (numeric only).
+                max_val (int or float): Maximum value (numeric only).
+                is_integer (bool): Whether to generate integers or floats.
+                qualitative_values (list of str, optional): If provided, generates qualitative values from this list.
 
-        Raises:
-            ValueError: For invalid count, value ranges, or empty qualitative list.
-            TypeError: If types are incorrect.
-        """
+            Raises:
+                ValueError: For invalid count, value ranges, or empty qualitative list.
+                TypeError: If types are incorrect.
+            """
         # === Input validation ===
         MAX_ALLOWED_COUNT = 20000
         if not isinstance(count, int) or count <= 0:
@@ -271,7 +271,7 @@ class RandomDataGenerator:
         self.qualitative_values = qualitative_values
 
         def generate_uniform_data(self):
-        """Generates uniformly distributed data (int or float based on is_integer)."""
+            """Generates uniformly distributed data (int or float based on is_integer)."""
 
         if self.is_integer:
             return [random.randint(self.min_val, self.max_val) for _ in range(self.count)]
@@ -279,19 +279,19 @@ class RandomDataGenerator:
             return [random.uniform(self.min_val, self.max_val) for _ in range(self.count)]
 
         def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
-        """
-        Generates data using the specified distribution.
+            """
+            Generates data using the specified distribution.
 
-        Parameters:
-            distribution (DistributionType): The distribution to use.
-            kwargs: Extra parameters for normal distribution (mean, stddev).
+            Parameters:
+                distribution (DistributionType): The distribution to use.
+                kwargs: Extra parameters for normal distribution (mean, stddev).
 
-        Returns:
-            list of generated data values
+            Returns:
+                list of generated data values
 
-        Raises:
-            ValueError: If unsupported distribution is selected.
-        """
+            Raises:
+                ValueError: If unsupported distribution is selected.
+            """
 
         if self.qualitative_values:
             return [random.choice(self.qualitative_values) for _ in range(self.count)]

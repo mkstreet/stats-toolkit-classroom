@@ -1,3 +1,5 @@
+# unified_data_toolkit.py
+
 """
 Unified Data Toolkit for Student Use
 ====================================
@@ -11,10 +13,8 @@ Features:
 - Random data generation (uniform, normal, skewed)
 - Scatter plotting and linear model fitting
 - Version control with expiration logic
-
- 
+- Extended models: Growth, Elimination, Inverse Estimator
 """
-
 
 import random
 import statistics
@@ -23,8 +23,7 @@ from enum import Enum, auto
 from typing import List, Union
 import matplotlib.pyplot as plt
 import numpy as np
-
-
+from scipy.optimize import curve_fit
 
 # === Version Control ===
 __version__ = "2025.06.25"
@@ -33,217 +32,149 @@ __expires__ = datetime.date(2025, 7, 2)
 
 if datetime.date.today() > __expires__:
     raise RuntimeError(
-        f"⚠️ This version ({__version__}, {__release__}) expired on {__expires__}. "
+        f"\u26a0\ufe0f This version ({__version__}, {__release__}) expired on {__expires__}. "
         "Please download the latest toolkit from your teacher."
     )
 
 
-
-
 class DataType(Enum):
-    """Defines the types of data a DataContainer can represent."""
-
     QUALITATIVE = "qualitative"
     DISCRETE = "discrete"
     CONTINUOUS = "continuous"
 
 
-
 class VariableRole(Enum):
-    """Defines the role of a variable in analysis (independent or dependent)."""
-
     INDEPENDENT = "independent"
     DEPENDENT = "dependent"
 
 
-
 class DistributionType(Enum):
-    """Defines supported random distributions for data generation."""
-
     UNIFORM = auto()
     NORMAL = auto()
     LEFT_SKEW = auto()
     RIGHT_SKEW = auto()
 
 
-
 class DataContainer:
-        """Stores a named dataset with type and role metadata, and provides loading methods."""
+    def __init__(self, name: str, description: str, data_type: DataType):
+        self.name = name
+        self.description = description
+        self.data_type = data_type
+        self.role: VariableRole = None
+        self.data: List[Union[int, float, str]] = []
 
-        def __init__(self, name: str, description: str, data_type: DataType):
-            """
-            Parameters:
-                name (str): Short label for this dataset.
-                description (str): A longer description for context.
-                data_type (DataType): Type of data being stored (qualitative, discrete, continuous).
-                data (List[tuple]): Paired (x, y) values or single-variable data.
-            """
+    def set_role(self, role: VariableRole):
+        self.role = role
 
-            self.name = name
-            self.description = description
-            self.data_type = data_type
-            self.role: VariableRole = None
-            self.data: List[Union[int, float, str]] = []
+    def load_data(self, source: Union[List[Union[int, float, str]], 'RandomDataGenerator']):
+        if isinstance(source, list):
+            self.data = source
+        elif isinstance(source, RandomDataGenerator):
+            self.data = source.generate_data()
+        else:
+            raise TypeError("Unsupported data source type")
 
-        def set_role(self, role: VariableRole):
-            """Assigns whether the variable is independent or dependent."""
-    
-            self.role = role
+    def load_time_series(self, x_list: List[float], y_list: List[float]):
+        self.data = list(zip(x_list, y_list))
 
-        def load_data(self, source: Union[List[Union[int, float, str]], RandomDataGenerator]):
-            """
-            Loads data from a list or a generator into this container.
+    def _get_xy_data_zip(self):
+        return zip(*self.data)
 
-            Parameters:
-                source (list or RandomDataGenerator): Data source to load.
-
-            Raises:
-                TypeError: If source is an unsupported type.
-            """
-
-            if isinstance(source, list):
-                self.data = source
-            elif isinstance(source, RandomDataGenerator):
-                self.data = source.generate_data()
-            else:
-                raise TypeError("Unsupported data source type")
-
-
-        def load_time_series(self, x_list: List[float], y_list: List[float]):
-            """Loads a series of (x, y) data pairs."""
-            self.data = list(zip(x_list, y_list))
-
-        def _get_xy_data_zip(self):
-            return zip(*self.data)
-
-        def getDescription(self):
-            return self.description
-
-
+    def getDescription(self):
+        return self.description
 
 
 class PlotData:
-        _dc = None
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
 
-        def __init__(self, dc:DataContainer):
-            self._dc = description
-
-        def scatter(self):
-            x_vals, y_vals = self._dc._get_xy_data_zip()
-            plt.scatter(x_vals, y_vals)
-            plt.title(f"{self._dc.getDescription()}")
-            plt.xlabel("X")
-            plt.ylabel("Y")
-            plt.grid(True)
-            plt.show()
+    def scatter(self):
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        plt.scatter(x_vals, y_vals)
+        plt.title(f"{self._dc.getDescription()}")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.show()
 
 
 class FitModel:
-        _dc = None
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+        self.x = np.array([x for x, _ in self._dc.data])
+        self.y = np.array([y for _, y in self._dc.data])
+        self.coeffs = None
 
-        def __init__(self, dc:DataContainer):
-            self._dc = description
+    def fit_linear_model(self, start: float, end: float):
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        filtered = [(x, y) for x, y in zip(x_vals, y_vals) if start <= x <= end]
 
+        if len(filtered) < 2:
+            raise ValueError("Not enough data points in specified range.")
 
-        def fit_linear_model(self, start: float, end: float):
-            """
-            Fits and plots a linear model to data between specified x-values.
+        x_fit, y_fit = zip(*filtered)
+        slope, intercept = np.polyfit(x_fit, y_fit, 1)
+        self.coeffs = (slope, intercept)
 
-            Args:
-                start (float): Lower bound of x-values to include.
-                end (float): Upper bound of x-values to include.
+        y_pred = np.polyval([slope, intercept], x_fit)
+        residuals = np.array(y_fit) - np.array(y_pred)
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((np.array(y_fit) - np.mean(y_fit))**2)
+        r_squared = 1 - ss_res / ss_tot
 
-            Returns:
-                dict: Dictionary with slope, intercept, and r_squared.
-            """
-            x_vals, y_vals = self._dc._get_xy_data_zip()
-            filtered = [(x, y) for x, y in zip(x_vals, y_vals) if start <= x <= end]
+        plt.scatter(x_vals, y_vals)
+        plt.plot(x_fit, y_pred, color='red')
+        plt.title("Linear Fit")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.show()
 
-            if len(filtered) < 2:
-                raise ValueError("Not enough data points in specified range.")
+        return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
 
-            x_fit, y_fit = zip(*filtered)
-            slope, intercept = np.polyfit(x_fit, y_fit, 1)
-            y_pred = np.polyval([slope, intercept], x_fit)
-            residuals = y_fit - y_pred
-            ss_res = np.sum(residuals**2)
-            ss_tot = np.sum((y_fit - np.mean(y_fit))**2)
-            r_squared = 1 - ss_res / ss_tot
+    def predict(self, x_val):
+        if self.coeffs is None:
+            raise RuntimeError("Model has not been fit yet.")
+        return self.coeffs[0] * x_val + self.coeffs[1]
 
-            plt.scatter(x_vals, y_vals)
-            plt.plot(x_fit, y_pred, color='red')
-            plt.title("Linear Fit")
-            plt.xlabel("X")
-            plt.ylabel("Y")
-            plt.grid(True)
-            plt.show()
+    def summary(self):
+        if self.coeffs is None:
+            return "Model not fit yet."
+        slope, intercept = self.coeffs
+        return f"f(t) = {slope:.3f} * t + {intercept:.3f}"
 
-            return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
+    def fit_logistic(self):
+        guess = [max(self.y), 1, np.median(self.x)]
+        self.params, _ = curve_fit(lambda x, L, k, x0: L / (1 + np.exp(-k * (x - x0))), self.x, self.y, p0=guess)
 
+    def plot_logistic(self):
+        L, k, x0 = self.params
+        x_range = np.linspace(min(self.x), max(self.x), 100)
+        y_fit = L / (1 + np.exp(-k * (x_range - x0)))
+        plt.plot(self.x, self.y, 'bo', label='Data')
+        plt.plot(x_range, y_fit, 'r-', label='Logistic Fit')
+        plt.title("Logistic Growth Fit")
+        plt.legend()
+        plt.show()
 
+    def fit_inverse(self):
+        guess = [1, 1]
+        self.params, _ = curve_fit(lambda x, a, b: a / (x + b), self.x, self.y, p0=guess)
 
-
-
-
-
-
-class SummaryStats:
-        """Provides statistical summaries (mean, median, mode) for numeric data in a DataContainer."""
-
-        def __init__(self, container: DataContainer):
-            """
-            Parameters:
-                container (DataContainer): Must contain numeric data.
-
-            Raises:
-                TypeError: If data type is QUALITATIVE.
-            """
-
-        self.container = container
-        if self.container.data_type == DataType.QUALITATIVE:
-            raise TypeError("Cannot compute numerical summary on qualitative data.")
-
-        def mean(self):
-            """Returns the mean of the data."""
-
-        return statistics.mean(self.container.data)
-
-        def median(self):
-            """Returns the median of the data."""
-
-        return statistics.median(self.container.data)
-
-        def mode(self):
-            """Returns the mode of the data."""
-
-        return statistics.mode(self.container.data)
+    def predict_inverse(self, y_target):
+        a, b = self.params
+        return (a / y_target) - b
 
 
 class RandomDataGenerator:
-        """Generates random datasets using various distributions, optionally qualitative or numeric."""
-
-        def __init__(
+    def __init__(
         self,
-
         count: int,
         min_val: Union[int, float] = 0,
         max_val: Union[int, float] = 100,
         is_integer: bool = True,
         qualitative_values: List[str] = None
     ):
-            """
-            Parameters:
-                count (int): Number of values to generate.
-                min_val (int or float): Minimum value (numeric only).
-                max_val (int or float): Maximum value (numeric only).
-                is_integer (bool): Whether to generate integers or floats.
-                qualitative_values (list of str, optional): If provided, generates qualitative values from this list.
-
-            Raises:
-                ValueError: For invalid count, value ranges, or empty qualitative list.
-                TypeError: If types are incorrect.
-            """
-        # === Input validation ===
         MAX_ALLOWED_COUNT = 20000
         if not isinstance(count, int) or count <= 0:
             raise ValueError("count must be a positive integer")
@@ -252,7 +183,6 @@ class RandomDataGenerator:
 
         if not isinstance(min_val, (int, float)) or not isinstance(max_val, (int, float)):
             raise TypeError("min_val and max_val must be numbers")
-
         if min_val >= max_val:
             raise ValueError("min_val must be less than max_val")
 
@@ -270,31 +200,16 @@ class RandomDataGenerator:
         self.is_integer = is_integer
         self.qualitative_values = qualitative_values
 
-        def generate_uniform_data(self):
-            """Generates uniformly distributed data (int or float based on is_integer)."""
-
+    def generate_uniform_data(self):
         if self.is_integer:
             return [random.randint(self.min_val, self.max_val) for _ in range(self.count)]
         else:
             return [random.uniform(self.min_val, self.max_val) for _ in range(self.count)]
 
-        def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
-            """
-            Generates data using the specified distribution.
-
-            Parameters:
-                distribution (DistributionType): The distribution to use.
-                kwargs: Extra parameters for normal distribution (mean, stddev).
-
-            Returns:
-                list of generated data values
-
-            Raises:
-                ValueError: If unsupported distribution is selected.
-            """
-
+    def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
         if self.qualitative_values:
             return [random.choice(self.qualitative_values) for _ in range(self.count)]
+
         if distribution == DistributionType.UNIFORM:
             return self.generate_uniform_data()
         elif distribution == DistributionType.NORMAL:
@@ -307,3 +222,24 @@ class RandomDataGenerator:
             return [self.min_val + (random.random() ** 0.5) * (self.max_val - self.min_val) for _ in range(self.count)]
         else:
             raise ValueError("Unsupported distribution type.")
+
+
+class SummaryStats:
+    def __init__(self, container: DataContainer):
+        self.container = container
+
+    def mean(self):
+        if self.container.data_type == DataType.QUALITATIVE:
+            raise TypeError("Mean is not defined for qualitative data.")
+        return statistics.mean(self.container.data)
+
+    def median(self):
+        if self.container.data_type == DataType.QUALITATIVE:
+            raise TypeError("Median is not defined for qualitative data.")
+        return statistics.median(self.container.data)
+
+    def mode(self):
+        try:
+            return statistics.mode(self.container.data)
+        except statistics.StatisticsError:
+            return "No unique mode"

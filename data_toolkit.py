@@ -4,16 +4,18 @@
 Unified Data Toolkit for Student Use
 ====================================
 
-This module provides tools for generating, storing, and analyzing data
-in a structured and pedagogically useful way. It merges two diverged
-versions into a single, comprehensive toolkit.
+This module helps you collect, generate, analyze, and graph data in simple ways.
+It includes tools for working with numbers, categories, graphs, and models.
+Students can use it in science, math, or any project that involves data.
 
-Features:
-- Data containers with role and type awareness
-- Random data generation (uniform, normal, skewed)
-- Scatter plotting and linear model fitting
-- Version control with expiration logic
-- Extended models: Growth, Elimination, Inverse Estimator
+What you can do with it:
+- Store data with labels and types
+- Generate random or patterned data
+- Plot scatterplots of data
+- Fit straight-line and curved models to data
+- Calculate statistics like average, middle value, or most common value
+
+NOTE: This version will stop working after a certain date so students always get the latest version.
 """
 
 import random
@@ -38,24 +40,35 @@ if datetime.date.today() > __expires__:
 
 
 class DataType(Enum):
-    QUALITATIVE = "qualitative"
-    DISCRETE = "discrete"
-    CONTINUOUS = "continuous"
+    """Tells what kind of data you are working with."""
+    QUALITATIVE = "qualitative"  # Categories, like "red" or "tall"
+    DISCRETE = "discrete"        # Whole numbers, like 1 or 2 or 5
+    CONTINUOUS = "continuous"    # Any value, like 3.6 or 4.95
 
 
 class VariableRole(Enum):
-    INDEPENDENT = "independent"
-    DEPENDENT = "dependent"
+    """Tells if a variable is the cause or the effect in a graph or experiment."""
+    INDEPENDENT = "independent"  # The thing you change (x-axis)
+    DEPENDENT = "dependent"      # The thing you measure (y-axis)
 
 
 class DistributionType(Enum):
-    UNIFORM = auto()
-    NORMAL = auto()
-    LEFT_SKEW = auto()
-    RIGHT_SKEW = auto()
+    """Ways to randomly generate numbers."""
+    UNIFORM = auto()     # All values are equally likely
+    NORMAL = auto()      # Bell curve (most in the middle)
+    LEFT_SKEW = auto()   # More high values than low
+    RIGHT_SKEW = auto()  # More low values than high
 
 
 class DataContainer:
+    """
+    Stores your data along with labels and extra info.
+
+    Parameters:
+    - name (str): Short name of the variable (like "height")
+    - description (str): Longer description (like "Height of plants in cm")
+    - data_type (DataType): Tells if the data is numbers or categories
+    """
     def __init__(self, name: str, description: str, data_type: DataType):
         self.name = name
         self.description = description
@@ -64,9 +77,17 @@ class DataContainer:
         self.data: List[Union[int, float, str]] = []
 
     def set_role(self, role: VariableRole):
+        """Set whether this variable is independent (x-axis) or dependent (y-axis)."""
         self.role = role
 
     def load_data(self, source: Union[List[Union[int, float, str]], 'RandomDataGenerator']):
+        """
+        Loads data into this container.
+
+        You can give it:
+        - A list like [1, 2, 3, 4]
+        - A RandomDataGenerator object that makes data for you
+        """
         if isinstance(source, list):
             self.data = source
         elif isinstance(source, RandomDataGenerator):
@@ -75,6 +96,13 @@ class DataContainer:
             raise TypeError("Unsupported data source type")
 
     def load_time_series(self, x_list: List[float], y_list: List[float]):
+        """
+        Loads paired data points like (time, value).
+
+        Make sure:
+        - x_list and y_list are the same length
+        - each x matches a y (like time and height)
+        """
         self.data = list(zip(x_list, y_list))
 
     def _get_xy_data_zip(self):
@@ -85,10 +113,17 @@ class DataContainer:
 
 
 class PlotData:
+    """
+    Draws a scatter plot using the data from a DataContainer.
+
+    To use:
+        PlotData(my_container).scatter()
+    """
     def __init__(self, dc: DataContainer):
         self._dc = dc
 
     def scatter(self):
+        """Shows a scatterplot of the data on a graph."""
         x_vals, y_vals = self._dc._get_xy_data_zip()
         plt.scatter(x_vals, y_vals)
         plt.title(f"{self._dc.getDescription()}")
@@ -99,6 +134,14 @@ class PlotData:
 
 
 class FitModel:
+    """
+    Fits math models to data in a DataContainer.
+
+    You can:
+    - Fit a straight line (linear)
+    - Fit a curve (logistic or inverse)
+    - Use the model to predict values
+    """
     def __init__(self, dc: DataContainer):
         self._dc = dc
         self.x = np.array([x for x, _ in self._dc.data])
@@ -106,6 +149,16 @@ class FitModel:
         self.coeffs = None
 
     def fit_linear_model(self, start: float, end: float):
+        """
+        Finds the best-fit line for part of the data.
+
+        Parameters:
+        - start: The smallest x to include
+        - end: The largest x to include
+
+        Returns:
+        A dictionary with slope, intercept, and r-squared score
+        """
         x_vals, y_vals = self._dc._get_xy_data_zip()
         filtered = [(x, y) for x, y in zip(x_vals, y_vals) if start <= x <= end]
 
@@ -133,21 +186,25 @@ class FitModel:
         return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
 
     def predict(self, x_val):
+        """Predicts a y value from x using the linear model."""
         if self.coeffs is None:
             raise RuntimeError("Model has not been fit yet.")
         return self.coeffs[0] * x_val + self.coeffs[1]
 
     def summary(self):
+        """Shows the equation of the linear model."""
         if self.coeffs is None:
             return "Model not fit yet."
         slope, intercept = self.coeffs
         return f"f(t) = {slope:.3f} * t + {intercept:.3f}"
 
     def fit_logistic(self):
+        """Fits a logistic growth curve to the data."""
         guess = [max(self.y), 1, np.median(self.x)]
         self.params, _ = curve_fit(lambda x, L, k, x0: L / (1 + np.exp(-k * (x - x0))), self.x, self.y, p0=guess)
 
     def plot_logistic(self):
+        """Draws the logistic model on top of the data."""
         L, k, x0 = self.params
         x_range = np.linspace(min(self.x), max(self.x), 100)
         y_fit = L / (1 + np.exp(-k * (x_range - x0)))
@@ -158,88 +215,11 @@ class FitModel:
         plt.show()
 
     def fit_inverse(self):
+        """Fits an inverse model (like 1/x) to the data."""
         guess = [1, 1]
         self.params, _ = curve_fit(lambda x, a, b: a / (x + b), self.x, self.y, p0=guess)
 
     def predict_inverse(self, y_target):
+        """Gives an x-value that would create the given y-value using the inverse model."""
         a, b = self.params
         return (a / y_target) - b
-
-
-class RandomDataGenerator:
-    def __init__(
-        self,
-        count: int,
-        min_val: Union[int, float] = 0,
-        max_val: Union[int, float] = 100,
-        is_integer: bool = True,
-        qualitative_values: List[str] = None
-    ):
-        MAX_ALLOWED_COUNT = 20000
-        if not isinstance(count, int) or count <= 0:
-            raise ValueError("count must be a positive integer")
-        if count > MAX_ALLOWED_COUNT:
-            raise ValueError(f"count exceeds safe maximum of {MAX_ALLOWED_COUNT}.")
-
-        if not isinstance(min_val, (int, float)) or not isinstance(max_val, (int, float)):
-            raise TypeError("min_val and max_val must be numbers")
-        if min_val >= max_val:
-            raise ValueError("min_val must be less than max_val")
-
-        if qualitative_values is not None:
-            if not isinstance(qualitative_values, list):
-                raise TypeError("qualitative_values must be a list")
-            if not all(isinstance(item, str) for item in qualitative_values):
-                raise TypeError("All items in qualitative_values must be strings")
-            if len(qualitative_values) == 0:
-                raise ValueError("qualitative_values list must not be empty")
-
-        self.count = count
-        self.min_val = min_val
-        self.max_val = max_val
-        self.is_integer = is_integer
-        self.qualitative_values = qualitative_values
-
-    def generate_uniform_data(self):
-        if self.is_integer:
-            return [random.randint(self.min_val, self.max_val) for _ in range(self.count)]
-        else:
-            return [random.uniform(self.min_val, self.max_val) for _ in range(self.count)]
-
-    def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
-        if self.qualitative_values:
-            return [random.choice(self.qualitative_values) for _ in range(self.count)]
-
-        if distribution == DistributionType.UNIFORM:
-            return self.generate_uniform_data()
-        elif distribution == DistributionType.NORMAL:
-            mean = kwargs.get('mean', 50)
-            stddev = kwargs.get('stddev', 10)
-            return [random.gauss(mean, stddev) for _ in range(self.count)]
-        elif distribution == DistributionType.RIGHT_SKEW:
-            return [self.min_val + (random.random() ** 2) * (self.max_val - self.min_val) for _ in range(self.count)]
-        elif distribution == DistributionType.LEFT_SKEW:
-            return [self.min_val + (random.random() ** 0.5) * (self.max_val - self.min_val) for _ in range(self.count)]
-        else:
-            raise ValueError("Unsupported distribution type.")
-
-
-class SummaryStats:
-    def __init__(self, container: DataContainer):
-        self.container = container
-
-    def mean(self):
-        if self.container.data_type == DataType.QUALITATIVE:
-            raise TypeError("Mean is not defined for qualitative data.")
-        return statistics.mean(self.container.data)
-
-    def median(self):
-        if self.container.data_type == DataType.QUALITATIVE:
-            raise TypeError("Median is not defined for qualitative data.")
-        return statistics.median(self.container.data)
-
-    def mode(self):
-        try:
-            return statistics.mode(self.container.data)
-        except statistics.StatisticsError:
-            return "No unique mode"

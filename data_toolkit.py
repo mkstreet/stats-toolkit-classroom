@@ -125,7 +125,7 @@ class DataContainer:
 class PlotData:
         _dc = None
 
-        def __init__(self, dc:DataContainer)
+        def __init__(self, dc:DataContainer):
             self._dc = description
 
         def scatter(self):
@@ -141,7 +141,7 @@ class PlotData:
 class FitModel:
         _dc = None
 
-        def __init__(self, dc:DataContainer)
+        def __init__(self, dc:DataContainer):
             self._dc = description
 
 

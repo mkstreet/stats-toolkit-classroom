@@ -68,45 +68,45 @@ class DistributionType(Enum):
 
 
 class DataContainer:
-    """Stores a named dataset with type and role metadata, and provides loading methods."""
+        """Stores a named dataset with type and role metadata, and provides loading methods."""
 
         def __init__(self, name: str, description: str, data_type: DataType):
-        """
-        Parameters:
-            name (str): Short label for this dataset.
-            description (str): A longer description for context.
-            data_type (DataType): Type of data being stored (qualitative, discrete, continuous).
-            data (List[tuple]): Paired (x, y) values or single-variable data.
-        """
+            """
+            Parameters:
+                name (str): Short label for this dataset.
+                description (str): A longer description for context.
+                data_type (DataType): Type of data being stored (qualitative, discrete, continuous).
+                data (List[tuple]): Paired (x, y) values or single-variable data.
+            """
 
-           self.name = name
-           self.description = description
-           self.data_type = data_type
-           self.role: VariableRole = None
-           self.data: List[Union[int, float, str]] = []
+            self.name = name
+            self.description = description
+            self.data_type = data_type
+            self.role: VariableRole = None
+            self.data: List[Union[int, float, str]] = []
 
         def set_role(self, role: VariableRole):
-        """Assigns whether the variable is independent or dependent."""
-  
-           self.role = role
+            """Assigns whether the variable is independent or dependent."""
+    
+            self.role = role
 
         def load_data(self, source: Union[List[Union[int, float, str]], RandomDataGenerator]):
-        """
-        Loads data from a list or a generator into this container.
+            """
+            Loads data from a list or a generator into this container.
 
-        Parameters:
-            source (list or RandomDataGenerator): Data source to load.
+            Parameters:
+                source (list or RandomDataGenerator): Data source to load.
 
-        Raises:
-            TypeError: If source is an unsupported type.
-        """
+            Raises:
+                TypeError: If source is an unsupported type.
+            """
 
-        if isinstance(source, list):
-            self.data = source
-        elif isinstance(source, RandomDataGenerator):
-            self.data = source.generate_data()
-        else:
-            raise TypeError("Unsupported data source type")
+            if isinstance(source, list):
+                self.data = source
+            elif isinstance(source, RandomDataGenerator):
+                self.data = source.generate_data()
+            else:
+                raise TypeError("Unsupported data source type")
 
 
         def load_time_series(self, x_list: List[float], y_list: List[float]):

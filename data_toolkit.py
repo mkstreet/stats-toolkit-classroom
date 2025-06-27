@@ -38,188 +38,132 @@ if datetime.date.today() > __expires__:
         "Please download the latest toolkit from your teacher."
     )
 
-
 class DataType(Enum):
-    """Tells what kind of data you are working with."""
-    QUALITATIVE = "qualitative"  # Categories, like "red" or "tall"
-    DISCRETE = "discrete"        # Whole numbers, like 1 or 2 or 5
-    CONTINUOUS = "continuous"    # Any value, like 3.6 or 4.95
-
+    QUALITATIVE = "qualitative"
+    DISCRETE = "discrete"
+    CONTINUOUS = "continuous"
 
 class VariableRole(Enum):
-    """Tells if a variable is the cause or the effect in a graph or experiment."""
-    INDEPENDENT = "independent"  # The thing you change (x-axis)
-    DEPENDENT = "dependent"      # The thing you measure (y-axis)
-
+    INDEPENDENT = "independent"
+    DEPENDENT = "dependent"
 
 class DistributionType(Enum):
-    """Ways to randomly generate numbers."""
-    UNIFORM = auto()     # All values are equally likely
-    NORMAL = auto()      # Bell curve (most in the middle)
-    LEFT_SKEW = auto()   # More high values than low
-    RIGHT_SKEW = auto()  # More low values than high
+    UNIFORM = "uniform"
+    NORMAL = "normal"
+    SKEW_LEFT = "skew_left"
+    SKEW_RIGHT = "skew_right"
 
-
+# --- Data Container ---
 class DataContainer:
-    """
-    Stores your data along with labels and extra info.
-
-    Parameters:
-    - name (str): Short name of the variable (like "height")
-    - description (str): Longer description (like "Height of plants in cm")
-    - data_type (DataType): Tells if the data is numbers or categories
-    """
-    def __init__(self, name: str, description: str, data_type: DataType):
+    def __init__(self, name, description, data_type):
         self.name = name
         self.description = description
         self.data_type = data_type
-        self.role: VariableRole = None
-        self.data: List[Union[int, float, str]] = []
+        self.role = None
+        self.data = []
+        self.time_series = None
 
-    def set_role(self, role: VariableRole):
-        """Set whether this variable is independent (x-axis) or dependent (y-axis)."""
+    def set_role(self, role):
         self.role = role
 
-    def load_data(self, source: Union[List[Union[int, float, str]], 'RandomDataGenerator']):
-        """
-        Loads data into this container.
+    def load_data(self, data):
+        self.data = list(data)
 
-        You can give it:
-        - A list like [1, 2, 3, 4]
-        - A RandomDataGenerator object that makes data for you
-        """
-        if isinstance(source, list):
-            self.data = source
-        elif isinstance(source, RandomDataGenerator):
-            self.data = source.generate_data()
+    def load_time_series(self, x, y):
+        self.time_series = (list(x), list(y))
+
+    def plot_scatter(self):
+        if self.time_series:
+            x, y = self.time_series
+            plt.scatter(x, y)
+            plt.xlabel("Time")
+            plt.ylabel(self.description)
+            plt.title(f"{self.name} Scatter Plot")
+            plt.grid(True)
+            plt.show()
         else:
-            raise TypeError("Unsupported data source type")
+            raise ValueError("No time series loaded to plot.")
 
-    def load_time_series(self, x_list: List[float], y_list: List[float]):
-        """
-        Loads paired data points like (time, value).
+    def fit_linear_model(self, start=None, end=None):
+        if not self.time_series:
+            raise ValueError("No time series data available.")
+        x, y = self.time_series
+        if start is None: start = 0
+        if end is None: end = len(x)
+        x_segment = x[start:end]
+        y_segment = y[start:end]
+        coeffs = np.polyfit(x_segment, y_segment, 1)
+        slope, intercept = coeffs
+        return LinearModel(slope, intercept)
 
-        Make sure:
-        - x_list and y_list are the same length
-        - each x matches a y (like time and height)
-        """
-        self.data = list(zip(x_list, y_list))
-
-    def _get_xy_data_zip(self):
-        return zip(*self.data)
-
-    def getDescription(self):
-        return self.description
-
-
-class PlotData:
-    """
-    Draws a scatter plot using the data from a DataContainer.
-
-    To use:
-        PlotData(my_container).scatter()
-    """
-    def __init__(self, dc: DataContainer):
-        self._dc = dc
-
-    def scatter(self):
-        """Shows a scatterplot of the data on a graph."""
-        x_vals, y_vals = self._dc._get_xy_data_zip()
-        plt.scatter(x_vals, y_vals)
-        plt.title(f"{self._dc.getDescription()}")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.grid(True)
-        plt.show()
-
-
-class FitModel:
-    """
-    Fits math models to data in a DataContainer.
-
-    You can:
-    - Fit a straight line (linear)
-    - Fit a curve (logistic or inverse)
-    - Use the model to predict values
-    """
-    def __init__(self, dc: DataContainer):
-        self._dc = dc
-        self.x = np.array([x for x, _ in self._dc.data])
-        self.y = np.array([y for _, y in self._dc.data])
-        self.coeffs = None
-
-    def fit_linear_model(self, start: float, end: float):
-        """
-        Finds the best-fit line for part of the data.
-
-        Parameters:
-        - start: The smallest x to include
-        - end: The largest x to include
-
-        Returns:
-        A dictionary with slope, intercept, and r-squared score
-        """
-        x_vals, y_vals = self._dc._get_xy_data_zip()
-        filtered = [(x, y) for x, y in zip(x_vals, y_vals) if start <= x <= end]
-
-        if len(filtered) < 2:
-            raise ValueError("Not enough data points in specified range.")
-
-        x_fit, y_fit = zip(*filtered)
-        slope, intercept = np.polyfit(x_fit, y_fit, 1)
-        self.coeffs = (slope, intercept)
-
-        y_pred = np.polyval([slope, intercept], x_fit)
-        residuals = np.array(y_fit) - np.array(y_pred)
-        ss_res = np.sum(residuals**2)
-        ss_tot = np.sum((np.array(y_fit) - np.mean(y_fit))**2)
-        r_squared = 1 - ss_res / ss_tot
-
-        plt.scatter(x_vals, y_vals)
-        plt.plot(x_fit, y_pred, color='red')
-        plt.title("Linear Fit")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.grid(True)
-        plt.show()
-
-        return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
-
-    def predict(self, x_val):
-        """Predicts a y value from x using the linear model."""
-        if self.coeffs is None:
-            raise RuntimeError("Model has not been fit yet.")
-        return self.coeffs[0] * x_val + self.coeffs[1]
+# --- Linear Model ---
+class LinearModel:
+    def __init__(self, slope, intercept):
+        self.slope = slope
+        self.intercept = intercept
 
     def summary(self):
-        """Shows the equation of the linear model."""
-        if self.coeffs is None:
-            return "Model not fit yet."
-        slope, intercept = self.coeffs
-        return f"f(t) = {slope:.3f} * t + {intercept:.3f}"
+        print(f"y = {self.slope:.3f} * x + {self.intercept:.3f}")
 
-    def fit_logistic(self):
-        """Fits a logistic growth curve to the data."""
-        guess = [max(self.y), 1, np.median(self.x)]
-        self.params, _ = curve_fit(lambda x, L, k, x0: L / (1 + np.exp(-k * (x - x0))), self.x, self.y, p0=guess)
+    def predict(self, x_val):
+        return self.slope * x_val + self.intercept
 
-    def plot_logistic(self):
-        """Draws the logistic model on top of the data."""
-        L, k, x0 = self.params
-        x_range = np.linspace(min(self.x), max(self.x), 100)
-        y_fit = L / (1 + np.exp(-k * (x_range - x0)))
-        plt.plot(self.x, self.y, 'bo', label='Data')
-        plt.plot(x_range, y_fit, 'r-', label='Logistic Fit')
-        plt.title("Logistic Growth Fit")
-        plt.legend()
-        plt.show()
+    def get_time_for_value(self, target_y):
+        if self.slope == 0:
+            raise ValueError("Slope is zero; cannot solve for x.")
+        return (target_y - self.intercept) / self.slope
 
-    def fit_inverse(self):
-        """Fits an inverse model (like 1/x) to the data."""
-        guess = [1, 1]
-        self.params, _ = curve_fit(lambda x, a, b: a / (x + b), self.x, self.y, p0=guess)
+# --- Summary Stats ---
+class SummaryStats:
+    def __init__(self, data):
+        self.data = sorted(data)
 
-    def predict_inverse(self, y_target):
-        """Gives an x-value that would create the given y-value using the inverse model."""
-        a, b = self.params
-        return (a / y_target) - b
+    def mean(self):
+        return sum(self.data) / len(self.data)
+
+    def median(self):
+        n = len(self.data)
+        mid = n // 2
+        if n % 2 == 0:
+            return (self.data[mid - 1] + self.data[mid]) / 2
+        else:
+            return self.data[mid]
+
+    def mode(self):
+        freq = {}
+        for val in self.data:
+            freq[val] = freq.get(val, 0) + 1
+        max_count = max(freq.values())
+        modes = [val for val, count in freq.items() if count == max_count]
+        return modes
+
+# --- Random Generator ---
+class RandomGenerator:
+    def __init__(self):
+        pass
+
+    def generate_numeric(self, count, min_val=0, max_val=100, skew=DistributionType.UNIFORM):
+        if count > 20000:
+            raise ValueError("Maximum count is 20,000")
+        if min_val >= max_val:
+            raise ValueError("min_val must be less than max_val")
+
+        if skew == DistributionType.UNIFORM:
+            return [random.uniform(min_val, max_val) for _ in range(count)]
+        elif skew == DistributionType.NORMAL:
+            mean = (min_val + max_val) / 2
+            stddev = (max_val - min_val) / 6
+            return [max(min(random.gauss(mean, stddev), max_val), min_val) for _ in range(count)]
+        elif skew == DistributionType.SKEW_RIGHT:
+            data = np.random.beta(a=2, b=5, size=count)
+            return list(min_val + (max_val - min_val) * data)
+        elif skew == DistributionType.SKEW_LEFT:
+            data = np.random.beta(a=5, b=2, size=count)
+            return list(min_val + (max_val - min_val) * data)
+        else:
+            raise ValueError("Unsupported distribution type.")
+
+    def generate_qualitative(self, count, choices):
+        if count > 20000:
+            raise ValueError("Maximum count is 20,000")
+        return [random.choice(choices) for _ in range(count)]

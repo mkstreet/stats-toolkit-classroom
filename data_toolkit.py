@@ -1,198 +1,287 @@
+# ============================
+# Enums
+# ============================
+from enum import Enum
 
-import random
-import statistics
-import datetime
-from enum import Enum, auto
-from typing import List, Union
-
-# === Version Control ===
-__version__ = "2025.06.17"
-__release__ = "r01"
-__expires__ = datetime.date(2025, 6, 24)
-
-if datetime.date.today() > __expires__:
-    raise RuntimeError(
-        f"⚠️ This version ({__version__}, {__release__}) expired on {__expires__}. "
-        "Please download the latest toolkit from your teacher."
-    )
+class DistributionType(Enum):
+    UNIFORM = "uniform"
+    NORMAL = "normal"
+    EXPONENTIAL = "exponential"
+    BINOMIAL = "binomial"
+    QUALITATIVE = "qualitative"
 
 class DataType(Enum):
-    """Defines the types of data a DataContainer can represent."""
+    TIME_SERIES = "time_series"
+    CROSS_SECTIONAL = "cross_sectional"
+    PANEL = "panel"
 
-    QUALITATIVE = "qualitative"
-    DISCRETE = "discrete"
-    CONTINUOUS = "continuous"
+class ModelType(Enum):
+    LINEAR = "linear"
+    POLYFIT = "polyfit"
+    LOGISTIC_GROWTH = "logistic_growth"
+    DECAY = "decay"
+    INTERPOLATION = "interpolation"
+
+
+class HeaderOption(Enum):
+    HEADERS = "headers"
+    NOHEADERS = "noheaders"
+
+
+# ============================
+# Core: DataContainer
+# ============================
+from typing import List, Tuple, Optional
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
+
+
+__version__ = "1.3.0"
+__release__ = "2025-06-25"
+__expires__ = "2025-07-03"
+
+# Expiration check
+if datetime.now() > datetime.strptime(__expires__, "%Y-%m-%d"):
+    print("⚠️ This toolkit has expired. Please download the latest version from your instructor.")
+else:
+	print(f"INFO:  The data tool kit will expire after {datetime.strptime(__expires__, "%Y-%m-%d")}")
+
 
 class VariableRole(Enum):
-    """Defines the role of a variable in analysis (independent or dependent)."""
-
     INDEPENDENT = "independent"
     DEPENDENT = "dependent"
 
-class DistributionType(Enum):
-    """Defines supported random distributions for data generation."""
+class ValidatedContainer(BaseModel):
+    name: str
+    description: str
+    data_type: DataType
 
-    UNIFORM = auto()
-    NORMAL = auto()
-    LEFT_SKEW = auto()
-    RIGHT_SKEW = auto()
+    @validator('name', 'description')
+    def non_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Must be a non-empty string')
+        return v
 
-class RandomDataGenerator:
-    """Generates random datasets using various distributions, optionally qualitative or numeric."""
+class DataContainer(ValidatedContainer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.role: Optional[VariableRole] = None
+        self.data: List[Tuple[float, float]] = []
+        self.headers: Optional[List[str]] = None
+        self.df: Optional[pl.DataFrame] = None
+        self.data_matrix: Optional[List[Tuple[float, ...]]] = None
 
-        def __init__(
-        self,
-
-        count: int,
-        min_val: Union[int, float] = 0,
-        max_val: Union[int, float] = 100,
-        is_integer: bool = True,
-        qualitative_values: List[str] = None
-    ):
-        """
-        Parameters:
-            count (int): Number of values to generate.
-            min_val (int or float): Minimum value (numeric only).
-            max_val (int or float): Maximum value (numeric only).
-            is_integer (bool): Whether to generate integers or floats.
-            qualitative_values (list of str, optional): If provided, generates qualitative values from this list.
-
-        Raises:
-            ValueError: For invalid count, value ranges, or empty qualitative list.
-            TypeError: If types are incorrect.
-        """
-        # === Input validation ===
-        MAX_ALLOWED_COUNT = 20000
-        if not isinstance(count, int) or count <= 0:
-            raise ValueError("count must be a positive integer")
-        if count > MAX_ALLOWED_COUNT:
-            raise ValueError(f"count exceeds safe maximum of {MAX_ALLOWED_COUNT}.")
-
-        if not isinstance(min_val, (int, float)) or not isinstance(max_val, (int, float)):
-            raise TypeError("min_val and max_val must be numbers")
-
-        if min_val >= max_val:
-            raise ValueError("min_val must be less than max_val")
-
-        if qualitative_values is not None:
-            if not isinstance(qualitative_values, list):
-                raise TypeError("qualitative_values must be a list")
-            if not all(isinstance(item, str) for item in qualitative_values):
-                raise TypeError("All items in qualitative_values must be strings")
-            if len(qualitative_values) == 0:
-                raise ValueError("qualitative_values list must not be empty")
-
-        self.count = count
-        self.min_val = min_val
-        self.max_val = max_val
-        self.is_integer = is_integer
-        self.qualitative_values = qualitative_values
-
-        def generate_uniform_data(self):
-        """Generates uniformly distributed data (int or float based on is_integer)."""
-
-        if self.is_integer:
-            return [random.randint(self.min_val, self.max_val) for _ in range(self.count)]
-        else:
-            return [random.uniform(self.min_val, self.max_val) for _ in range(self.count)]
-
-        def generate_data(self, distribution=DistributionType.UNIFORM, **kwargs):
-        """
-        Generates data using the specified distribution.
-
-        Parameters:
-            distribution (DistributionType): The distribution to use.
-            kwargs: Extra parameters for normal distribution (mean, stddev).
-
-        Returns:
-            list of generated data values
-
-        Raises:
-            ValueError: If unsupported distribution is selected.
-        """
-
-        if self.qualitative_values:
-            return [random.choice(self.qualitative_values) for _ in range(self.count)]
-        if distribution == DistributionType.UNIFORM:
-            return self.generate_uniform_data()
-        elif distribution == DistributionType.NORMAL:
-            mean = kwargs.get('mean', 50)
-            stddev = kwargs.get('stddev', 10)
-            return [random.gauss(mean, stddev) for _ in range(self.count)]
-        elif distribution == DistributionType.RIGHT_SKEW:
-            return [self.min_val + (random.random() ** 2) * (self.max_val - self.min_val) for _ in range(self.count)]
-        elif distribution == DistributionType.LEFT_SKEW:
-            return [self.min_val + (random.random() ** 0.5) * (self.max_val - self.min_val) for _ in range(self.count)]
-        else:
-            raise ValueError("Unsupported distribution type.")
-
-class DataContainer:
-    """Stores a named dataset with type and role metadata, and provides loading methods."""
-
-        def __init__(self, name: str, description: str, data_type: DataType):
-        """
-        Parameters:
-            name (str): Short label for this dataset.
-            description (str): A longer description for context.
-            data_type (DataType): Type of data being stored (qualitative, discrete, continuous).
-        """
-
-        self.name = name
-        self.description = description
-        self.data_type = data_type
-        self.role: VariableRole = None
-        self.data: List[Union[int, float, str]] = []
-
-        def set_role(self, role: VariableRole):
-        """Assigns whether the variable is independent or dependent."""
-
+    def set_role(self, role: VariableRole):
+        if not isinstance(role, VariableRole):
+            raise TypeError("Role must be a VariableRole")
         self.role = role
 
-        def load_data(self, source: Union[List[Union[int, float, str]], RandomDataGenerator]):
-        """
-        Loads data from a list or a generator into this container.
+    def load_time_series(self, x_list: List[float], y_list: List[float]):
+        if len(x_list) != len(y_list):
+            raise ValueError("x and y must be same length.")
+        self.data = list(zip(x_list, y_list))
 
-        Parameters:
-            source (list or RandomDataGenerator): Data source to load.
+    def load_univariate(self, y_list: List[float]):
+        self.data = list(enumerate(y_list))
 
-        Raises:
-            TypeError: If source is an unsupported type.
-        """
+    def load_from_csv(self, path: str, has_headers: bool = True,
+                      x_col: Union[int, str] = 0, y_col: Union[int, str] = 1):
+        df = pl.read_csv(path, has_header=has_headers)
+        self.df = df
+        self.headers = df.columns
 
-        if isinstance(source, list):
-            self.data = source
-        elif isinstance(source, RandomDataGenerator):
-            self.data = source.generate_data()
+        if isinstance(x_col, int):
+            x = df[:, x_col].to_list()
         else:
-            raise TypeError("Unsupported data source type")
+            x = df[x_col].to_list()
 
-class SummaryStats:
-    """Provides statistical summaries (mean, median, mode) for numeric data in a DataContainer."""
+        if isinstance(y_col, int):
+            y = df[:, y_col].to_list()
+        else:
+            y = df[y_col].to_list()
 
-        def __init__(self, container: DataContainer):
-        """
-        Parameters:
-            container (DataContainer): Must contain numeric data.
+        if len(x) != len(y):
+            raise ValueError("X and Y columns must be the same length")
 
-        Raises:
-            TypeError: If data type is QUALITATIVE.
-        """
+        self.data = list(zip(x, y))
 
-        self.container = container
-        if self.container.data_type == DataType.QUALITATIVE:
-            raise TypeError("Cannot compute numerical summary on qualitative data.")
+    def load_multivariate_from_csv(self, path: str, header_option: HeaderOption = HeaderOption.HEADERS,
+                                    cols: Optional[Union[List[int], List[str]]] = None):
+        has_headers = header_option == HeaderOption.HEADERS
+        df = pl.read_csv(path, has_header=has_headers)
+        self.df = df
+        self.headers = df.columns
 
-        def mean(self):
-        """Returns the mean of the data."""
+        if cols is None:
+            sub_df = df
+        else:
+            try:
+                sub_df = df.select(cols)
+            except Exception as e:
+                raise ValueError(f"Failed to select columns {cols}: {e}")
 
-        return statistics.mean(self.container.data)
+        self.data_matrix = [tuple(row) for row in sub_df.rows()]
 
-        def median(self):
-        """Returns the median of the data."""
+    def _get_xy_data_zip(self):
+        return zip(*self.data)
 
-        return statistics.median(self.container.data)
 
-        def mode(self):
-        """Returns the mode of the data."""
 
-        return statistics.mode(self.container.data)
+# ============================
+# Plotting
+# ============================
+class PlotData:
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+
+    def scatter(self, title: Optional[str] = None):
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        x = list(x_vals)
+        y = list(y_vals)
+        plt.scatter(x, y)
+        plt.title(title if title else self._dc.description)
+        plt.xlabel(self._dc.name + " X")
+        plt.ylabel(self._dc.name + " Y")
+        plt.grid(True)
+        plt.show()
+
+    def plot_model_fit(self, model, title: Optional[str] = None):
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        x = np.array(list(x_vals))
+        y = np.array(list(y_vals))
+        y_fit = model.predict_y(x)
+        plt.plot(x, y, 'bo', label='Data')
+        plt.plot(x, y_fit, 'r-', label=model.summary())
+        plt.title(title if title else self._dc.description)
+        plt.xlabel(self._dc.name + " X")
+        plt.ylabel(self._dc.name + " Y")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+# ============================
+# Models
+# ============================
+from scipy.stats import linregress
+
+class LinearModel:
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+        self.result = None
+
+    def fit(self):
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        self.result = linregress(list(x_vals), list(y_vals))
+
+    def predict_y(self, x):
+        return self.result.slope * np.array(x) + self.result.intercept
+
+    def summary(self):
+        return f"y = {self.result.slope:.2f}x + {self.result.intercept:.2f}"
+
+
+class PolyFitModel:
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+        self.best_model = None
+        self.best_degree = None
+        self.coeffs = None
+
+    def fit(self):
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        x = np.array(list(x_vals))
+        y = np.array(list(y_vals))
+        best_rmse = float("inf")
+        for deg in [2, 3, 4, 5]:
+            coeffs = np.polyfit(x, y, deg)
+            y_pred = np.polyval(coeffs, x)
+            rmse = np.sqrt(np.mean((y - y_pred) ** 2))
+            if rmse < best_rmse:
+                best_rmse = rmse
+                self.best_degree = deg
+                self.coeffs = coeffs
+
+    def predict_y(self, x):
+        return np.polyval(self.coeffs, x)
+
+    def summary(self):
+        return f"polyfit deg={self.best_degree}, coeffs={np.round(self.coeffs, 2)}"
+
+
+class LogisticGrowthModel:
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+        # Placeholder logic for logistic fitting
+    def fit(self):
+        pass
+    def predict_y(self, x):
+        return x  # Placeholder
+    def summary(self):
+        return "logistic growth (placeholder)"
+
+
+class DecayModel:
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+        # Placeholder logic for decay fitting
+    def fit(self):
+        pass
+    def predict_y(self, x):
+        return x  # Placeholder
+    def summary(self):
+        return "decay model (placeholder)"
+
+
+class InverseEstimator:
+    def __init__(self, dc: DataContainer):
+        self._dc = dc
+        # Placeholder logic for inverse estimation
+    def estimate_x_for_y(self, y):
+        return y  # Placeholder
+
+
+# ============================
+# Fit Interface
+# ============================
+class FitModel:
+    def __init__(self, dc: DataContainer, model_type: ModelType):
+        self.dc = dc
+        self.model_type = model_type
+        self.model = self._build_model(model_type)
+
+    def _build_model(self, model_type: ModelType):
+        if model_type == ModelType.LINEAR:
+            return LinearModel(self.dc)
+        elif model_type == ModelType.POLYFIT:
+            return PolyFitModel(self.dc)
+        elif model_type == ModelType.LOGISTIC_GROWTH:
+            return LogisticGrowthModel(self.dc)
+        elif model_type == ModelType.DECAY:
+            return DecayModel(self.dc)
+        elif model_type == ModelType.INTERPOLATION:
+            return InverseEstimator(self.dc)
+        else:
+            raise ValueError(f"Unsupported model type: {model_type}")
+
+    def fit(self):
+        if hasattr(self.model, "fit"):
+            self.model.fit()
+
+    def summary(self):
+        if hasattr(self.model, "summary"):
+            return self.model.summary()
+        return f"{self.model_type.value} model has no summary."
+
+    def predict_y(self, x):
+        if hasattr(self.model, "predict_y"):
+            return self.model.predict_y(x)
+        raise NotImplementedError("This model does not support y prediction.")
+
+    def predict_x(self, y):
+        if hasattr(self.model, "predict_x"):
+            return self.model.predict_x(y)
+        elif hasattr(self.model, "estimate_x_for_y"):
+            return self.model.estimate_x_for_y(y)
+        raise NotImplementedError("This model does not support x prediction.")

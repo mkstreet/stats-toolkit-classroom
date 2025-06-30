@@ -43,7 +43,7 @@ __expires__ = "2025-07-03"
 
 # Expiration check
 if datetime.now() > datetime.strptime(__expires__, "%Y-%m-%d"):
-    print("⚠️ This toolkit has expired. Please download the latest version from your instructor.")
+	print("⚠️ This toolkit has expired. Please download the latest version from your instructor.")
 else:
 	print(f"INFO:  The data tool kit will expire after {datetime.strptime(__expires__, "%Y-%m-%d")}")
 

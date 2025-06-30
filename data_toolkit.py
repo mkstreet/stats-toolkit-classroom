@@ -53,12 +53,7 @@ else:
 # ============================
 # Core: DataContainer
 # ============================
-<<<<<<< HEAD
-class VariableRole(Enum):
-    INDEPENDENT = "independent"
-    DEPENDENT = "dependent"
-=======
->>>>>>> e76bfeed48af5130df549171532615036c2bb865
+
 
 class ValidatedContainer(BaseModel):
     name: str
@@ -71,10 +66,7 @@ class ValidatedContainer(BaseModel):
             raise ValueError('Must be a non-empty string')
         return v
 
-<<<<<<< HEAD
-=======
 
->>>>>>> e76bfeed48af5130df549171532615036c2bb865
 class DataContainer(ValidatedContainer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

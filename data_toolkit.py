@@ -8,6 +8,7 @@ from pydantic import BaseModel, validator
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
+from scipy.optimize import curve_fit
 
 class DistributionType(Enum):
     UNIFORM = "uniform"
@@ -207,15 +208,22 @@ class PolyFitModel:
 class LogisticGrowthModel:
     def __init__(self, dc: DataContainer):
         self._dc = dc
+        self.params = None
 
     def fit(self):
-        raise NotImplementedError("LogisticGrowthModel.fit() is not yet implemented.")
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        x = np.array(list(x_vals))
+        y = np.array(list(y_vals))
+        guess = [max(y), 1, np.median(x)]
+        self.params, _ = curve_fit(lambda x, L, k, x0: L / (1 + np.exp(-k * (x - x0))), x, y, p0=guess)
 
     def predict_y(self, x):
-        return x
+        L, k, x0 = self.params
+        return L / (1 + np.exp(-k * (x - x0)))
 
     def summary(self):
-        return "logistic growth (placeholder)"
+        L, k, x0 = self.params
+        return f"logistic: L={L:.2f}, k={k:.2f}, x0={x0:.2f}"
 
 class DecayModel:
     def __init__(self, dc: DataContainer):
@@ -233,12 +241,22 @@ class DecayModel:
 class InverseEstimator:
     def __init__(self, dc: DataContainer):
         self._dc = dc
+        self.params = None
 
     def fit(self):
-        pass
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        x = np.array(list(x_vals))
+        y = np.array(list(y_vals))
+        guess = [1, 1]
+        self.params, _ = curve_fit(lambda x, a, b: a / (x + b), x, y, p0=guess)
+
+    def predict_y(self, x):
+        a, b = self.params
+        return a / (x + b)
 
     def estimate_x_for_y(self, y):
-        return y
+        a, b = self.params
+        return (a / y) - b
 
 # ============================
 # Fit Interface

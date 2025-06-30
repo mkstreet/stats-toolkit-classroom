@@ -379,7 +379,7 @@ class FitModel:
         elif hasattr(self.model, "estimate_x_for_y"):
             return self.model.estimate_x_for_y(y)
         raise NotImplementedError("This model does not support x prediction.")
-=======
+
     def load_time_series(self, x_list: List[float], y_list: List[float]):
         """
         Loads paired data points like (time, value).

@@ -325,4 +325,67 @@ class FitModel:
         elif hasattr(self.model, "estimate_x_for_y"):
             return self.model.estimate_x_for_y(y)
         raise NotImplementedError("This model does not support x prediction.")
+     
+    def fit_linear_model(self, start: float, end: float):
+        """
+        Finds the best-fit line for part of the data.
+
+        Parameters:
+        - start: The smallest x to include
+        - end: The largest x to include
+
+        Returns:
+        A dictionary with slope, intercept, and r-squared score
+        """
+        x_vals, y_vals = self._dc._get_xy_data_zip()
+        filtered = [(x, y) for x, y in zip(x_vals, y_vals) if start <= x <= end]
+
+        if len(filtered) < 2:
+            raise ValueError("Not enough data points in specified range.")
+
+        x_fit, y_fit = zip(*filtered)
+        slope, intercept = np.polyfit(x_fit, y_fit, 1)
+        self.coeffs = (slope, intercept)
+
+        y_pred = np.polyval([slope, intercept], x_fit)
+        residuals = np.array(y_fit) - np.array(y_pred)
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((np.array(y_fit) - np.mean(y_fit))**2)
+        r_squared = 1 - ss_res / ss_tot
+
+        plt.scatter(x_vals, y_vals)
+        plt.plot(x_fit, y_pred, color='red')
+        plt.title("Linear Fit")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.show()
+
+        return {"slope": slope, "intercept": intercept, "r_squared": r_squared}
         
+    def fit_logistic(self):
+        """Fits a logistic growth curve to the data."""
+        guess = [max(self.y), 1, np.median(self.x)]
+        self.params, _ = curve_fit(lambda x, L, k, x0: L / (1 + np.exp(-k * (x - x0))), self.x, self.y, p0=guess)
+
+    def plot_logistic(self):
+        """Draws the logistic model on top of the data."""
+        L, k, x0 = self.params
+        x_range = np.linspace(min(self.x), max(self.x), 100)
+        y_fit = L / (1 + np.exp(-k * (x_range - x0)))
+        plt.plot(self.x, self.y, 'bo', label='Data')
+        plt.plot(x_range, y_fit, 'r-', label='Logistic Fit')
+        plt.title("Logistic Growth Fit")
+        plt.legend()
+        plt.show()
+
+    def fit_inverse(self):
+        """Fits an inverse model (like 1/x) to the data."""
+        guess = [1, 1]
+        self.params, _ = curve_fit(lambda x, a, b: a / (x + b), self.x, self.y, p0=guess)
+
+    def predict_inverse(self, y_target):
+        """Gives an x-value that would create the given y-value using the inverse model."""
+        a, b = self.params
+        return (a / y_target) - b
+                 

@@ -1,9 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
 
 
 
-exit 0
 
 
 

@@ -33,6 +33,11 @@ class HeaderOption(Enum):
     HEADERS = "headers"
     NOHEADERS = "noheaders"
 
+class VariableRole(Enum):
+    INDEPENDENT = "independent"
+    DEPENDENT = "dependent"
+
+
 # ============================
 # Expiration check
 # ============================

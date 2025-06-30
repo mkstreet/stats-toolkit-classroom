@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ============================
 # Enums
 # ============================
@@ -94,14 +93,14 @@ class DataContainer(ValidatedContainer):
 
         if isinstance(x_col, int):
             x = df[:, x_col].to_list()
-=======
+#=======
 # unified_data_toolkit.py
+#
+#"""
+#Unified Data Toolkit for Student Use
+#====================================
 
-"""
-Unified Data Toolkit for Student Use
-====================================
-
-This module helps you collect, generate, analyze, and graph data in simple ways.
+"""This module helps you collect, generate, analyze, and graph data in simple ways.
 It includes tools for working with numbers, categories, graphs, and models.
 Students can use it in science, math, or any project that involves data.
 
@@ -189,11 +188,8 @@ class DataContainer:
             self.data = source
         elif isinstance(source, RandomDataGenerator):
             self.data = source.generate_data()
->>>>>>> 9b3e2876ff147fbdebff4d92d3be26317e7e32b4
         else:
             x = df[x_col].to_list()
-
-<<<<<<< HEAD
         if isinstance(y_col, int):
             y = df[:, y_col].to_list()
         else:
@@ -512,4 +508,3 @@ class FitModel:
         """Gives an x-value that would create the given y-value using the inverse model."""
         a, b = self.params
         return (a / y_target) - b
->>>>>>> 9b3e2876ff147fbdebff4d92d3be26317e7e32b4

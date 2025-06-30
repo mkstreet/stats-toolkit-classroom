@@ -48,6 +48,19 @@ else:
 # ============================
 # Extensions to DataContainer
 # ============================
+
+class ValidatedContainer(BaseModel):
+    name: str
+    description: str
+    data_type: DataType
+
+    @validator('name', 'description')
+    def non_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Must be a non-empty string')
+        return v
+
+
 class DataContainer(ValidatedContainer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

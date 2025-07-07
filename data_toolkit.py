@@ -76,6 +76,11 @@ class ValidatedContainer(BaseModel):
             raise ValueError('Must be a non-empty string')
         return v
 
+    model_config = {
+        "extra": "forbid"  # Ensures extra fields raise error *only* if undeclared
+    }
+
+
 
 
 class DataContainer(ValidatedContainer):

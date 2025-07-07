@@ -62,11 +62,11 @@ class ValidatedContainer(BaseModel):
     name: str
     description: str
     data_type: DataType
-
-    class Config:
-        extra = "forbid"
-        allow_mutation = True
-        validate_assignment = True
+    role: Optional[VariableRole] = Field(default=None)
+    data: List[Tuple[float, float]] = Field(default_factory=list)
+    headers: Optional[List[str]] = Field(default=None)
+    df: Optional[pl.DataFrame] = Field(default=None)
+    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
 
     @validator('name', 'description')
     def non_empty(cls, v):
@@ -74,14 +74,14 @@ class ValidatedContainer(BaseModel):
             raise ValueError('Must be a non-empty string')
         return v
 
+    class Config:
+        extra = "forbid"
+        allow_mutation = True
+        validate_assignment = True
+
 
 
 class DataContainer(ValidatedContainer):
-    role: Optional[VariableRole] = Field(default=None)
-    data: List[Tuple[float, float]] = Field(default_factory=list)
-    headers: Optional[List[str]] = Field(default=None)
-    df: Optional[pl.DataFrame] = Field(default=None)
-    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
 
     def set_role(self, role: VariableRole):
         if not isinstance(role, VariableRole):

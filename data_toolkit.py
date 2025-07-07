@@ -2,13 +2,15 @@
 # Enums
 # ============================
 from enum import Enum
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Annotated
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 from scipy.optimize import curve_fit
+
+
 
 class DistributionType(Enum):
     UNIFORM = "uniform"
@@ -54,24 +56,25 @@ else:
 # Core: DataContainer
 # ============================
 
+ 
 
 class ValidatedContainer(BaseModel):
     name: str
     description: str
     data_type: DataType
 
-    # Add these fields here so that DataContainer inherits them properly
-    role: Optional[VariableRole] = Field(default=None)
-    data: List[Tuple[float, float]] = Field(default_factory=list)
-    headers: Optional[List[str]] = Field(default=None)
-    df: Optional[pl.DataFrame] = Field(default=None)
-    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
+    role: Annotated[Optional[VariableRole], Field(default=None)]
+    data: Annotated[List[Tuple[float, float]], Field(default_factory=list)]
+    headers: Annotated[Optional[List[str]], Field(default=None)]
+    df: Annotated[Optional[pl.DataFrame], Field(default=None)]
+    data_matrix: Annotated[Optional[List[Tuple[float, ...]]], Field(default=None)]
 
     @validator('name', 'description')
     def non_empty(cls, v):
         if not v or not v.strip():
             raise ValueError('Must be a non-empty string')
         return v
+
 
 class DataContainer(ValidatedContainer):
 

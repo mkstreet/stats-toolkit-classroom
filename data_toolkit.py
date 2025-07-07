@@ -64,11 +64,11 @@ class ValidatedContainer(BaseModel):
     description: str
     data_type: DataType
 
-    role: Optional[VariableRole] = Field(default=None)
-    data: List[Tuple[float, float]] = Field(default_factory=list)
-    headers: Optional[List[str]] = Field(default=None)
-    df: Optional[pl.DataFrame] = Field(default=None)
-    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
+    role: Optional[VariableRole] = None
+    data: List[Tuple[float, float]] = []
+    headers: Optional[List[str]] = None
+    df: Optional[pl.DataFrame] = None
+    data_matrix: Optional[List[Tuple[float, ...]]] = None
 
     @validator('name', 'description')
     def non_empty(cls, v):
@@ -76,11 +76,10 @@ class ValidatedContainer(BaseModel):
             raise ValueError('Must be a non-empty string')
         return v
 
-    model_config = {
-        "extra": "forbid",
-        "frozen": False,     # ✅ allow setting attributes like self.role
-        "validate_assignment": True
-    }
+    class Config:
+        extra = "forbid"
+        allow_mutation = True  # ✅ needed for self.role = ...
+        validate_assignment = True
 
 
 

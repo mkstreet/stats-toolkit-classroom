@@ -61,9 +61,9 @@ class ValidatedContainer(BaseModel):
     data_type: DataType
 
     # Add these fields here so that DataContainer inherits them properly
-    role: Optional[VariableRole] = None
+    role: Optional[VariableRole] = Field(default=None)
     data: List[Tuple[float, float]] = Field(default_factory=list)
-    headers: Optional[List[str]] = None
+    headers: Optional[List[str]] = Field(default=None)
     df: Optional[pl.DataFrame] = Field(default=None)
     data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
 

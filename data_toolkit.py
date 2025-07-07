@@ -62,7 +62,8 @@ class ValidatedContainer(BaseModel):
     name: str
     description: str
     data_type: DataType
-    role: Optional[VariableRole] = Field(default=None)
+
+    role: Optional[VariableRole] = Field(default=None)  # ✅ Important fix
     data: List[Tuple[float, float]] = Field(default_factory=list)
     headers: Optional[List[str]] = Field(default=None)
     df: Optional[pl.DataFrame] = Field(default=None)
@@ -78,6 +79,7 @@ class ValidatedContainer(BaseModel):
         extra = "forbid"
         allow_mutation = True
         validate_assignment = True
+
 
 
 

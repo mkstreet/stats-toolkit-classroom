@@ -58,22 +58,18 @@ else:
 
  
 
+ 
+
 class ValidatedContainer(BaseModel):
     name: str
     description: str
     data_type: DataType
 
-    role: Optional[VariableRole] = Field(default=None)  # ✅ Important fix
+    role: Optional[VariableRole] = Field(default=None)  # ✅ this is required
     data: List[Tuple[float, float]] = Field(default_factory=list)
     headers: Optional[List[str]] = Field(default=None)
     df: Optional[pl.DataFrame] = Field(default=None)
     data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
-
-    @validator('name', 'description')
-    def non_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError('Must be a non-empty string')
-        return v
 
     class Config:
         extra = "forbid"

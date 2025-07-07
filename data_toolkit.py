@@ -77,7 +77,9 @@ class ValidatedContainer(BaseModel):
         return v
 
     model_config = {
-        "extra": "forbid"  # Ensures extra fields raise error *only* if undeclared
+        "extra": "forbid",
+        "frozen": False,     # ✅ allow setting attributes like self.role
+        "validate_assignment": True
     }
 
 

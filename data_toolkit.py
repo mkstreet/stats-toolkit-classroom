@@ -4,7 +4,7 @@
 from enum import Enum
 from typing import List, Tuple, Optional, Union
 from datetime import datetime
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
@@ -60,19 +60,20 @@ class ValidatedContainer(BaseModel):
     description: str
     data_type: DataType
 
+    # Add these fields here so that DataContainer inherits them properly
+    role: Optional[VariableRole] = None
+    data: List[Tuple[float, float]] = Field(default_factory=list)
+    headers: Optional[List[str]] = None
+    df: Optional[pl.DataFrame] = Field(default=None)
+    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
+
     @validator('name', 'description')
     def non_empty(cls, v):
         if not v or not v.strip():
             raise ValueError('Must be a non-empty string')
         return v
 
-
 class DataContainer(ValidatedContainer):
-    role: Optional[VariableRole] = None
-    data: List[Tuple[float, float]] = Field(default_factory=list)
-    headers: Optional[List[str]] = None
-    df: Optional[pl.DataFrame] = Field(default=None)
-    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
 
     def set_role(self, role: VariableRole):
         if not isinstance(role, VariableRole):

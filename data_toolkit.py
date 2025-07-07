@@ -68,13 +68,11 @@ class ValidatedContainer(BaseModel):
 
 
 class DataContainer(ValidatedContainer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.role: Optional[VariableRole] = None
-        self.data: List[Tuple[float, float]] = []
-        self.headers: Optional[List[str]] = None
-        self.df: Optional[pl.DataFrame] = None
-        self.data_matrix: Optional[List[Tuple[float, ...]]] = None
+    role: Optional[VariableRole] = None
+    data: List[Tuple[float, float]] = Field(default_factory=list)
+    headers: Optional[List[str]] = None
+    df: Optional[pl.DataFrame] = Field(default=None)
+    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
 
     def set_role(self, role: VariableRole):
         if not isinstance(role, VariableRole):

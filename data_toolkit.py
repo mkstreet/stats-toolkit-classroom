@@ -43,7 +43,7 @@ class VariableRole(Enum):
 # ============================
 __version__ = "1.3.0"
 __release__ = "2025-06-25"
-__expires__ = "2025-07-03"
+__expires__ = "2025-07-10"
 
 if datetime.now() > datetime.strptime(__expires__, "%Y-%m-%d"):
     print("\u26a0\ufe0f This toolkit has expired. Please download the latest version from your instructor.")

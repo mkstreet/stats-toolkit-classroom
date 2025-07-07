@@ -57,33 +57,33 @@ else:
 # ============================
 
  
+class ValidatedContainer:
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        data_type,
+        role: Optional = None,
+        data: Optional[List[Tuple[float, float]]] = None,
+        headers: Optional[List[str]] = None,
+        df: Optional[pl.DataFrame] = None,
+        data_matrix: Optional[List[Tuple[float, ...]]] = None,
+    ):
+        if not name.strip() or not description.strip():
+            raise ValueError("Name and description must be non-empty.")
 
- 
-
-class ValidatedContainer(BaseModel):
-    name: str
-    description: str
-    data_type: DataType
-
-    role: Optional[VariableRole] = Field(default=None)  # ✅ this is required
-    data: List[Tuple[float, float]] = Field(default_factory=list)
-    headers: Optional[List[str]] = Field(default=None)
-    df: Optional[pl.DataFrame] = Field(default=None)
-    data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
-
-    class Config:
-        extra = "forbid"
-        allow_mutation = True
-        validate_assignment = True
-
-
+        self.name = name
+        self.description = description
+        self.data_type = data_type
+        self.role = role
+        self.data = data if data is not None else []
+        self.headers = headers
+        self.df = df
+        self.data_matrix = data_matrix
 
 
 class DataContainer(ValidatedContainer):
-
-    def set_role(self, role: VariableRole):
-        if not isinstance(role, VariableRole):
-            raise TypeError("Role must be a VariableRole")
+    def set_role(self, role):
         self.role = role
 
     def load_time_series(self, x_list: List[float], y_list: List[float]):
@@ -100,36 +100,21 @@ class DataContainer(ValidatedContainer):
         self.df = df
         self.headers = df.columns
 
-        if isinstance(x_col, int):
-            x = df[:, x_col].to_list()
-        else:
-            x = df[x_col].to_list()
-
-        if isinstance(y_col, int):
-            y = df[:, y_col].to_list()
-        else:
-            y = df[y_col].to_list()
+        x = df[:, x_col].to_list() if isinstance(x_col, int) else df[x_col].to_list()
+        y = df[:, y_col].to_list() if isinstance(y_col, int) else df[y_col].to_list()
 
         if len(x) != len(y):
             raise ValueError("X and Y columns must be the same length")
 
         self.data = list(zip(x, y))
 
-    def load_multivariate_from_csv(self, path: str, header_option: HeaderOption = HeaderOption.HEADERS,
-                                    cols: Optional[Union[List[int], List[str]]] = None):
-        has_headers = header_option == HeaderOption.HEADERS
+    def load_multivariate_from_csv(self, path: str, header_option, cols=None):
+        has_headers = header_option == "HEADERS"
         df = pl.read_csv(path, has_header=has_headers)
         self.df = df
         self.headers = df.columns
 
-        if cols is None:
-            sub_df = df
-        else:
-            try:
-                sub_df = df.select(cols)
-            except Exception as e:
-                raise ValueError(f"Failed to select columns {cols}: {e}")
-
+        sub_df = df if cols is None else df.select(cols)
         self.data_matrix = [tuple(row) for row in sub_df.rows()]
 
     def getDescription(self):
@@ -137,6 +122,85 @@ class DataContainer(ValidatedContainer):
 
     def _get_xy_data_zip(self):
         return zip(*self.data)
+ 
+
+# class ValidatedContainer(BaseModel):
+#     name: str
+#     description: str
+#     data_type: DataType
+
+#     role: Optional[VariableRole] = Field(default=None)  # ✅ this is required
+#     data: List[Tuple[float, float]] = Field(default_factory=list)
+#     headers: Optional[List[str]] = Field(default=None)
+#     df: Optional[pl.DataFrame] = Field(default=None)
+#     data_matrix: Optional[List[Tuple[float, ...]]] = Field(default=None)
+
+#     class Config:
+#         extra = "forbid"
+#         allow_mutation = True
+#         validate_assignment = True
+
+
+
+
+# class DataContainer(ValidatedContainer):
+
+#     def set_role(self, role: VariableRole):
+#         if not isinstance(role, VariableRole):
+#             raise TypeError("Role must be a VariableRole")
+#         self.role = role
+
+#     def load_time_series(self, x_list: List[float], y_list: List[float]):
+#         if len(x_list) != len(y_list):
+#             raise ValueError("x and y must be same length.")
+#         self.data = list(zip(x_list, y_list))
+
+#     def load_univariate(self, y_list: List[float]):
+#         self.data = list(enumerate(y_list))
+
+#     def load_from_csv(self, path: str, has_headers: bool = True,
+#                       x_col: Union[int, str] = 0, y_col: Union[int, str] = 1):
+#         df = pl.read_csv(path, has_header=has_headers)
+#         self.df = df
+#         self.headers = df.columns
+
+#         if isinstance(x_col, int):
+#             x = df[:, x_col].to_list()
+#         else:
+#             x = df[x_col].to_list()
+
+#         if isinstance(y_col, int):
+#             y = df[:, y_col].to_list()
+#         else:
+#             y = df[y_col].to_list()
+
+#         if len(x) != len(y):
+#             raise ValueError("X and Y columns must be the same length")
+
+#         self.data = list(zip(x, y))
+
+#     def load_multivariate_from_csv(self, path: str, header_option: HeaderOption = HeaderOption.HEADERS,
+#                                     cols: Optional[Union[List[int], List[str]]] = None):
+#         has_headers = header_option == HeaderOption.HEADERS
+#         df = pl.read_csv(path, has_header=has_headers)
+#         self.df = df
+#         self.headers = df.columns
+
+#         if cols is None:
+#             sub_df = df
+#         else:
+#             try:
+#                 sub_df = df.select(cols)
+#             except Exception as e:
+#                 raise ValueError(f"Failed to select columns {cols}: {e}")
+
+#         self.data_matrix = [tuple(row) for row in sub_df.rows()]
+
+#     def getDescription(self):
+#         return self.description
+
+#     def _get_xy_data_zip(self):
+#         return zip(*self.data)
 
 # ============================
 # Plotting
